@@ -1,0 +1,12 @@
+{
+  "name": "kredivo-ads-api",
+  "version": "1.0.0",
+  "description": "Serverless API functions for Kredivo Ads AI features",
+  "main": "index.js",
+  "dependencies": {
+    "openai": "^4.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

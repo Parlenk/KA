@@ -32,7 +32,8 @@
     }
   ],
   "env": {
-    "NODE_ENV": "production"
+    "NODE_ENV": "production",
+    "REACT_APP_AI_SERVICE_URL": "https://your-ai-service-domain.vercel.app"
   },
   "functions": {
     "backend/src/index-simple.js": {

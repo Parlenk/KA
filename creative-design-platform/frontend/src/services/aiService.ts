@@ -3,7 +3,11 @@
  * Connects frontend to Python FastAPI AI service with best AI resizer
  */
 
-const AI_SERVICE_URL = process.env.REACT_APP_AI_SERVICE_URL || 'http://localhost:8000';
+const AI_SERVICE_URL = process.env.REACT_APP_AI_SERVICE_URL || (
+  process.env.NODE_ENV === 'production' 
+    ? '' // Use relative URLs in production (same domain as frontend)
+    : 'http://localhost:8000' // Use local AI service in development
+);
 
 export interface AIResponse<T = any> {
   success: boolean;
@@ -118,7 +122,13 @@ class AIServiceClient {
    */
   async generateText(request: TextGenerationRequest): Promise<AIResponse<TextGenerationResult>> {
     console.log('✨ AI Text Generation:', request);
-    return await this.makeRequest<TextGenerationResult>('/ai/generate-text', request);
+    
+    // Use Vercel serverless function in production
+    const endpoint = process.env.NODE_ENV === 'production' 
+      ? '/api/ai-generate-text'
+      : '/ai/generate-text';
+    
+    return await this.makeRequest<TextGenerationResult>(endpoint, request);
   }
 
   canvasToBase64(canvas: any): string {
