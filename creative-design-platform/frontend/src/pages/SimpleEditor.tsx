@@ -2,11 +2,12 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { fabric } from 'fabric';
-import SimpleCanvas from '../components/Editor/SimpleCanvas';
-import EnterprisePropertiesPanel from '../components/Editor/EnterprisePropertiesPanel';
-import LayersPanel from '../components/Editor/LayersPanel';
-import ShortcutsHelp from '../components/Editor/ShortcutsHelp';
+import SimpleCanvas from '../components/editor/SimpleCanvas';
+import EnterprisePropertiesPanel from '../components/editor/EnterprisePropertiesPanel';
+import LayersPanel from '../components/editor/LayersPanel';
+import ShortcutsHelp from '../components/editor/ShortcutsHelp';
 import KredivoLogo from '../components/ui/KredivoLogo';
+import { getApiUrl } from '../utils/api';
 
 interface Template {
   id: number;
