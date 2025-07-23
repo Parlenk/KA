@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Creative Design Platform - Development</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .status {
+            padding: 20px 30px;
+            background: #f8fafc;
+            border-left: 4px solid #10b981;
+        }
+        
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            background: #10b981;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+        }
+        
+        .section h3 {
+            color: #1f2937;
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+        
+        .endpoints {
+            display: grid;
+            gap: 15px;
+        }
+        
+        .endpoint {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            transition: all 0.2s;
+        }
+        
+        .endpoint:hover {
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+        }
+        
+        .endpoint-method {
+            background: #10b981;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 8px;
+        }
+        
+        .endpoint-url {
+            font-family: 'Monaco', 'Menlo', monospace;
+            color: #4f46e5;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .endpoint-desc {
+            color: #6b7280;
+            font-size: 0.9rem;
+        }
+        
+        .test-button {
+            background: #4f46e5;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin-top: 10px;
+            transition: background 0.2s;
+        }
+        
+        .test-button:hover {
+            background: #4338ca;
+        }
+        
+        .response {
+            margin-top: 10px;
+            padding: 10px;
+            background: #1f2937;
+            color: #10b981;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.8rem;
+            white-space: pre-wrap;
+            display: none;
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .feature {
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #4f46e5;
+        }
+        
+        .feature h4 {
+            color: #1f2937;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        
+        .feature p {
+            color: #6b7280;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        
+        .footer {
+            background: #1f2937;
+            color: white;
+            padding: 20px 30px;
+            text-align: center;
+        }
+        
+        .footer p {
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎨 Creative Design Platform</h1>
+            <p>Backend API Development Server</p>
+        </div>
+        
+        <div class="status">
+            <div class="status-indicator">
+                <div class="status-dot"></div>
+                <strong>Server Status: Online</strong>
+            </div>
+            <div id="server-info">Loading server information...</div>
+        </div>
+        
+        <div class="content">
+            <div class="section">
+                <h3>🚀 API Endpoints</h3>
+                <div class="endpoints">
+                    <div class="endpoint">
+                        <div class="endpoint-method">GET</div>
+                        <div class="endpoint-url">/health</div>
+                        <div class="endpoint-desc">Health check endpoint - Returns server status and basic information</div>
+                        <button class="test-button" onclick="testEndpoint('/health', this)">Test Endpoint</button>
+                        <pre class="response"></pre>
+                    </div>
+                    
+                    <div class="endpoint">
+                        <div class="endpoint-method">GET</div>
+                        <div class="endpoint-url">/api/v1/status</div>
+                        <div class="endpoint-desc">API status endpoint - Returns API version and available endpoints</div>
+                        <button class="test-button" onclick="testEndpoint('/api/v1/status', this)">Test Endpoint</button>
+                        <pre class="response"></pre>
+                    </div>
+                    
+                    <div class="endpoint">
+                        <div class="endpoint-method">GET</div>
+                        <div class="endpoint-url">/api/v1/test</div>
+                        <div class="endpoint-desc">Test endpoint - Returns a test response with server information</div>
+                        <button class="test-button" onclick="testEndpoint('/api/v1/test', this)">Test Endpoint</button>
+                        <pre class="response"></pre>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h3>🏗️ Platform Features</h3>
+                <div class="features">
+                    <div class="feature">
+                        <h4>🎨 Multi-Size Design</h4>
+                        <p>Create designs that automatically adapt to 70+ standard advertising formats including social media, digital ads, and print.</p>
+                    </div>
+                    
+                    <div class="feature">
+                        <h4>⏱️ Animation System</h4>
+                        <p>Timeline-based animation editor with keyframes, presets, and AI-powered Magic Animator for professional motion graphics.</p>
+                    </div>
+                    
+                    <div class="feature">
+                        <h4>🎯 Brand Management</h4>
+                        <p>Comprehensive brand kit system for colors, fonts, and logos with intelligent usage tracking and consistency enforcement.</p>
+                    </div>
+                    
+                    <div class="feature">
+                        <h4>📤 Smart Export</h4>
+                        <p>Advanced export pipeline supporting PNG, JPG, SVG, HTML5, MP4, and GIF with platform-specific optimizations.</p>
+                    </div>
+                    
+                    <div class="feature">
+                        <h4>🔗 Social Publishing</h4>
+                        <p>Direct publishing to Facebook, Instagram, LinkedIn, Twitter, Pinterest, and TikTok with automated formatting.</p>
+                    </div>
+                    
+                    <div class="feature">
+                        <h4>☁️ Cloud Sync</h4>
+                        <p>Seamless integration with Google Drive, Dropbox, and OneDrive for automated asset synchronization and backup.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>© 2025 Creative Design Platform - Development Environment v1.0.0</p>
+        </div>
+    </div>
+
+    <script>
+        // Load server information
+        async function loadServerInfo() {
+            try {
+                const response = await fetch('/health');
+                const data = await response.json();
+                document.getElementById('server-info').innerHTML = `
+                    <strong>Environment:</strong> ${data.environment} | 
+                    <strong>Version:</strong> ${data.version} | 
+                    <strong>Timestamp:</strong> ${new Date(data.timestamp).toLocaleString()}
+                `;
+            } catch (error) {
+                document.getElementById('server-info').innerHTML = '<span style="color: #ef4444;">Failed to load server information</span>';
+            }
+        }
+        
+        // Test API endpoints
+        async function testEndpoint(endpoint, button) {
+            const responseElement = button.nextElementSibling;
+            button.textContent = 'Testing...';
+            button.disabled = true;
+            
+            try {
+                const response = await fetch(endpoint);
+                const data = await response.json();
+                responseElement.textContent = JSON.stringify(data, null, 2);
+                responseElement.style.display = 'block';
+                button.textContent = '✅ Success';
+                setTimeout(() => {
+                    button.textContent = 'Test Endpoint';
+                    button.disabled = false;
+                }, 2000);
+            } catch (error) {
+                responseElement.textContent = `Error: ${error.message}`;
+                responseElement.style.display = 'block';
+                responseElement.style.color = '#ef4444';
+                button.textContent = '❌ Failed';
+                setTimeout(() => {
+                    button.textContent = 'Test Endpoint';
+                    button.disabled = false;
+                }, 2000);
+            }
+        }
+        
+        // Load server info on page load
+        loadServerInfo();
+        
+        // Refresh server info every 30 seconds
+        setInterval(loadServerInfo, 30000);
+    </script>
+</body>
+</html>
