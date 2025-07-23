@@ -19,6 +19,9 @@ export default defineConfig({
     legalComments: 'none'
   },
   server: {
-    port: 3000
+    port: 3000,
+    strictPort: false,
+    host: true,
+    open: true
   }
 })

@@ -4,10 +4,14 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --port 3000",
+    "dev:fallback": "vite --port 3001",
+    "dev:backup": "vite --port 3002", 
+    "dev:last": "vite --port 3003",
+    "start": "npm run dev",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview --port 3000"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.4",
