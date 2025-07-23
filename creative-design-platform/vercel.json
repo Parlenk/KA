@@ -1,43 +1,22 @@
 {
   "version": 2,
   "name": "kredivo-ads-center",
-  "builds": [
-    {
-      "src": "frontend/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
-      }
-    },
-    {
-      "src": "backend/src/index-simple.js",
-      "use": "@vercel/node",
-      "config": {
-        "maxLambdaSize": "50mb"
-      }
+  "buildCommand": "cd frontend && npm run build",
+  "outputDirectory": "frontend/dist",
+  "installCommand": "cd frontend && npm install",
+  "functions": {
+    "api/*.js": {
+      "runtime": "nodejs18.x"
     }
-  ],
+  },
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/backend/src/index-simple.js"
-    },
-    {
-      "src": "/health",
-      "dest": "/backend/src/index-simple.js"
+      "dest": "/api/$1"
     },
     {
       "src": "/(.*)",
       "dest": "/frontend/dist/$1"
     }
-  ],
-  "env": {
-    "NODE_ENV": "production",
-    "REACT_APP_AI_SERVICE_URL": "https://your-ai-service-domain.vercel.app"
-  },
-  "functions": {
-    "backend/src/index-simple.js": {
-      "maxDuration": 30
-    }
-  }
+  ]
 }
