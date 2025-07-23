@@ -13,7 +13,8 @@
       "src": "creative-design-platform/backend/src/index-simple.js",
       "use": "@vercel/node",
       "config": {
-        "maxLambdaSize": "50mb"
+        "maxLambdaSize": "50mb",
+        "maxDuration": 30
       }
     }
   ],
@@ -33,10 +34,5 @@
   ],
   "env": {
     "NODE_ENV": "production"
-  },
-  "functions": {
-    "creative-design-platform/backend/src/index-simple.js": {
-      "maxDuration": 30
-    }
   }
 }
