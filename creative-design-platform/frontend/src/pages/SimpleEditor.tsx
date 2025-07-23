@@ -6,8 +6,13 @@ import SimpleCanvas from '../components/editor/SimpleCanvas';
 import EnterprisePropertiesPanel from '../components/editor/EnterprisePropertiesPanel';
 import LayersPanel from '../components/editor/LayersPanel';
 import ShortcutsHelp from '../components/editor/ShortcutsHelp';
+import ImageEditingTools from '../components/editor/ImageEditingTools';
+import TypographyPanel from '../components/editor/TypographyPanel';
+import TemplateSelector from '../components/editor/TemplateSelector';
 import KredivoLogo from '../components/ui/KredivoLogo';
 import { getApiUrl } from '../utils/api';
+import { ProfessionalTemplate } from '../data/professionalTemplates';
+import { aiService, canvasAIHelpers } from '../services/aiService';
 
 interface Template {
   id: number;
@@ -41,6 +46,7 @@ export default function SimpleEditor() {
   const [selectedTool, setSelectedTool] = useState('select');
   const [canvas, setCanvas] = useState<fabric.Canvas | null>(null);
   const [selectedObjects, setSelectedObjects] = useState<fabric.Object[]>([]);
+  const [selectedImage, setSelectedImage] = useState<fabric.Image | null>(null);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
 
@@ -112,6 +118,7 @@ export default function SimpleEditor() {
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [hasOverflowObjects, setHasOverflowObjects] = useState(false);
+  const [activeLeftPanel, setActiveLeftPanel] = useState<'ai' | 'templates' | 'typography' | 'quick'>('ai');
 
   useEffect(() => {
     if (projectId) {
@@ -151,13 +158,22 @@ export default function SimpleEditor() {
     };
   }, [canvas]);
 
-  // Update canvas dimensions when template loads
+  // Update canvas dimensions when template loads (only if no URL dimensions were provided)
   useEffect(() => {
     if (template) {
-      setCanvasWidth(template.dimensions.width);
-      setCanvasHeight(template.dimensions.height);
-      setWidthInput(template.dimensions.width.toString());
-      setHeightInput(template.dimensions.height.toString());
+      // Only use template dimensions if no specific size was requested via URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlWidth = urlParams.get('width');
+      const urlHeight = urlParams.get('height');
+      
+      if (!urlWidth && !urlHeight) {
+        // No URL dimensions provided, use template dimensions
+        setCanvasWidth(template.dimensions.width);
+        setCanvasHeight(template.dimensions.height);
+        setWidthInput(template.dimensions.width.toString());
+        setHeightInput(template.dimensions.height.toString());
+      }
+      // If URL dimensions exist, keep the existing canvas size (already set in initialization)
     }
   }, [template]);
 
@@ -184,6 +200,10 @@ export default function SimpleEditor() {
   // Canvas event handlers
   const handleSelectionChange = (objects: fabric.Object[]) => {
     setSelectedObjects(objects);
+    
+    // Track selected image for image editing tools
+    const firstImage = objects.find(obj => obj instanceof fabric.Image) as fabric.Image | undefined;
+    setSelectedImage(firstImage || null);
   };
 
   const handleObjectModified = (object: fabric.Object) => {
@@ -223,6 +243,27 @@ export default function SimpleEditor() {
 
     canvas.renderAll();
     console.log('Object updated:', object, properties);
+  };
+
+  const handleImageUpdate = (updates: any) => {
+    // Handle image editing updates
+    if (!selectedImage || !canvas) return;
+    
+    console.log('Image updated with:', updates);
+    canvas.renderAll();
+  };
+
+  const handleTemplateSelect = (template: ProfessionalTemplate) => {
+    // Handle template selection
+    console.log('Template selected:', template);
+    
+    // Update canvas dimensions
+    setCanvasWidth(template.dimensions.width);
+    setCanvasHeight(template.dimensions.height);
+    setWidthInput(template.dimensions.width.toString());
+    setHeightInput(template.dimensions.height.toString());
+    
+    setHasUnsavedChanges(true);
   };
 
   const handleCanvasReady = (fabricCanvas: fabric.Canvas) => {
@@ -1119,10 +1160,62 @@ export default function SimpleEditor() {
 
       {/* Main Content */}
       <div style={styles.main}>
-        {/* Left Sidebar - Enhanced with AI Tools */}
-        <div style={{ ...styles.sidebar, width: '280px' }}>
-          {/* AI Tools Section */}
-          <div style={styles.sidebarSection} data-ai-section>
+        {/* Left Sidebar - Professional Panels */}
+        <div style={{ ...styles.sidebar, width: '320px' }}>
+          {/* Panel Navigation */}
+          <div style={{ marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', backgroundColor: '#f3f4f6', borderRadius: '0.5rem', padding: '0.25rem' }}>
+              {[
+                { id: 'templates', label: '🎨 Templates', icon: '🎨' },
+                { id: 'typography', label: '📝 Fonts', icon: '📝' },
+                { id: 'ai', label: '🤖 AI Tools', icon: '🤖' },
+                { id: 'quick', label: '⚡ Quick', icon: '⚡' }
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveLeftPanel(tab.id as any)}
+                  style={{
+                    flex: 1,
+                    padding: '0.5rem',
+                    borderRadius: '0.375rem',
+                    fontSize: '0.75rem',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    border: 'none',
+                    backgroundColor: activeLeftPanel === tab.id ? 'white' : 'transparent',
+                    color: activeLeftPanel === tab.id ? '#4f46e5' : '#6b7280',
+                    boxShadow: activeLeftPanel === tab.id ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  {tab.icon}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Panel Content */}
+          <div style={{ height: 'calc(100vh - 220px)', overflow: 'hidden' }}>
+            {activeLeftPanel === 'templates' && (
+              <TemplateSelector
+                canvas={canvas}
+                onTemplateSelect={handleTemplateSelect}
+                currentCanvasSize={{ width: canvasWidth, height: canvasHeight }}
+              />
+            )}
+
+            {activeLeftPanel === 'typography' && (
+              <TypographyPanel
+                canvas={canvas}
+                selectedObjects={selectedObjects}
+                onObjectUpdate={handleObjectUpdate}
+              />
+            )}
+
+            {activeLeftPanel === 'ai' && (
+              <div style={{ height: '100%', overflowY: 'auto' }}>
+                {/* AI Tools Section */}
+                <div style={styles.sidebarSection} data-ai-section>
             <h3 style={{ ...styles.sidebarTitle, color: '#4f46e5', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               🤖 AI Tools
             </h3>
@@ -1491,24 +1584,42 @@ export default function SimpleEditor() {
                   width: '100%',
                   fontSize: '0.75rem'
                 }}
-                onClick={() => {
+                onClick={async () => {
                   const activeObject = canvas?.getActiveObject();
                   if (!activeObject || !(activeObject instanceof fabric.Image)) {
                     alert('Please select an image first');
                     return;
                   }
-                  // Simulate background removal
-                  const filter = new fabric.Image.filters.RemoveColor({
-                    color: '#FFFFFF',
-                    distance: 0.2,
-                    useAlpha: true
-                  });
-                  (activeObject as fabric.Image).filters?.push(filter);
-                  (activeObject as fabric.Image).applyFilters();
-                  canvas?.renderAll();
+                  
+                  // Show loading state
+                  const button = document.activeElement as HTMLButtonElement;
+                  const originalText = button.textContent;
+                  button.textContent = '🤖 Removing BG...';
+                  button.disabled = true;
+                  
+                  try {
+                    console.log('🚀 Starting AI Background Removal');
+                    
+                    // Use real AI background removal
+                    const success = await canvasAIHelpers.removeImageBackground(activeObject as fabric.Image);
+                    
+                    if (success) {
+                      alert('✅ Background removed successfully with AI!');
+                      setHasUnsavedChanges(true);
+                    } else {
+                      alert('❌ AI Background removal failed. Please check your API configuration.');
+                    }
+                  } catch (error) {
+                    console.error('AI Background Removal error:', error);
+                    alert('❌ AI Background removal failed: ' + error.message);
+                  } finally {
+                    // Restore button state
+                    button.textContent = originalText;
+                    button.disabled = false;
+                  }
                 }}
               >
-                🎭 Remove Background
+                🎭 AI Remove Background
               </button>
               
               <button
@@ -1520,36 +1631,70 @@ export default function SimpleEditor() {
                   width: '100%',
                   fontSize: '0.75rem'
                 }}
-                onClick={() => {
+                onClick={async () => {
                   if (!canvas) return;
-                  // Generate AI text
-                  const aiTexts = [
-                    'Unlock Your Financial Future with Kredivo',
-                    'Smart Credit Solutions for Modern Living',
-                    'Your Trusted Partner in Financial Growth'
-                  ];
-                  const text = aiTexts[Math.floor(Math.random() * aiTexts.length)];
-                  const centerX = canvas.width! / 2;
-                  const centerY = canvas.height! / 2;
                   
-                  const textObj = new fabric.Text(text, {
-                    left: centerX,
-                    top: centerY + 100,
-                    fontSize: 20,
-                    fill: '#4f46e5',
-                    fontWeight: 'bold',
-                    originX: 'center',
-                    originY: 'center',
-                    selectable: true,
-                    editable: true,
-                  });
+                  // Get user input for AI text generation
+                  const prompt = prompt('What kind of copy do you want to generate?', 'Professional financial services marketing copy');
+                  if (!prompt) return;
                   
-                  canvas.add(textObj);
-                  canvas.setActiveObject(textObj);
-                  canvas.renderAll();
+                  const tone = prompt('What tone? (professional, friendly, confident, casual)', 'professional');
+                  if (!tone) return;
+                  
+                  // Show loading state
+                  const button = document.activeElement as HTMLButtonElement;
+                  const originalText = button.textContent;
+                  button.textContent = '🤖 Generating...';
+                  button.disabled = true;
+                  
+                  try {
+                    console.log('🚀 Starting AI Text Generation');
+                    
+                    // Use real AI text generation
+                    const response = await aiService.generateText({
+                      prompt: prompt,
+                      tone: tone,
+                      max_length: 100,
+                      variations: 1
+                    });
+                    
+                    if (response.success && response.data?.texts?.length > 0) {
+                      const generatedText = response.data.texts[0];
+                      const centerX = canvas.width! / 2;
+                      const centerY = canvas.height! / 2;
+                      
+                      const textObj = new fabric.Text(generatedText, {
+                        left: centerX,
+                        top: centerY + 100,
+                        fontSize: 20,
+                        fill: '#4f46e5',
+                        fontWeight: 'bold',
+                        originX: 'center',
+                        originY: 'center',
+                        selectable: true,
+                        editable: true,
+                      });
+                      
+                      canvas.add(textObj);
+                      canvas.setActiveObject(textObj);
+                      canvas.renderAll();
+                      setHasUnsavedChanges(true);
+                      
+                      alert(`✅ AI generated copy: "${generatedText}"`);
+                    } else {
+                      alert('❌ AI text generation failed. Please check your API configuration.');
+                    }
+                  } catch (error) {
+                    console.error('AI Text Generation error:', error);
+                    alert('❌ AI text generation failed: ' + error.message);
+                  } finally {
+                    // Restore button state
+                    button.textContent = originalText;
+                    button.disabled = false;
+                  }
                 }}
               >
-                ✨ Generate AI Copy
+                ✨ AI Generate Copy
               </button>
               
               <button
@@ -1594,15 +1739,80 @@ export default function SimpleEditor() {
                   width: '100%',
                   fontSize: '0.75rem'
                 }}
-                onClick={() => setShowCanvasSettings(true)}
+                onClick={async () => {
+                  if (!canvas) {
+                    alert('Canvas not ready');
+                    return;
+                  }
+                  
+                  // Show AI Smart Resize dialog
+                  const newWidth = prompt('Enter target width (px):', canvasWidth.toString());
+                  const newHeight = prompt('Enter target height (px):', canvasHeight.toString());
+                  
+                  if (!newWidth || !newHeight) return;
+                  
+                  const targetWidth = parseInt(newWidth);
+                  const targetHeight = parseInt(newHeight);
+                  
+                  if (isNaN(targetWidth) || isNaN(targetHeight)) {
+                    alert('Please enter valid numbers');
+                    return;
+                  }
+                  
+                  // Show loading state
+                  const button = document.activeElement as HTMLButtonElement;
+                  const originalText = button.textContent;
+                  button.textContent = '🤖 AI Resizing...';
+                  button.disabled = true;
+                  
+                  try {
+                    console.log('🚀 Starting AI Smart Resize:', { targetWidth, targetHeight });
+                    
+                    // Use the real AI smart resize with canvas helper
+                    const success = await canvasAIHelpers.smartResizeCanvas(
+                      canvas,
+                      targetWidth,
+                      targetHeight,
+                      {
+                        maintainAspect: true,
+                        enhanceQuality: true,
+                        backgroundFill: canvasBackground
+                      }
+                    );
+                    
+                    if (success) {
+                      // Update canvas dimensions in state
+                      setCanvasWidth(targetWidth);
+                      setCanvasHeight(targetHeight);
+                      setWidthInput(targetWidth.toString());
+                      setHeightInput(targetHeight.toString());
+                      setHasUnsavedChanges(true);
+                      
+                      alert('✅ AI Smart Resize completed successfully! Your design has been intelligently resized with AI enhancement.');
+                    } else {
+                      alert('❌ AI Smart Resize failed. Please check your API configuration or try again.');
+                    }
+                  } catch (error) {
+                    console.error('AI Smart Resize error:', error);
+                    alert('❌ AI Smart Resize failed: ' + error.message);
+                  } finally {
+                    // Restore button state
+                    button.textContent = originalText;
+                    button.disabled = false;
+                  }
+                }}
               >
-                📐 AI Smart Resize
+                🤖 AI Smart Resize
               </button>
             </div>
-          </div>
+                </div>
+              </div>
+            )}
 
-          {/* Quick Actions Section */}
-          <div style={styles.sidebarSection}>
+            {activeLeftPanel === 'quick' && (
+              <div style={{ height: '100%', overflowY: 'auto', padding: '1rem' }}>
+                {/* Quick Actions Section */}
+                <div style={styles.sidebarSection}>
             <h3 style={styles.sidebarTitle}>Quick Actions</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <button
@@ -1630,9 +1840,10 @@ export default function SimpleEditor() {
                 ⭕ Add Circle
               </button>
             </div>
-          </div>
+                </div>
 
-          <div style={styles.sidebarSection}>
+                {/* Template Info */}
+                <div style={styles.sidebarSection}>
             <h3 style={styles.sidebarTitle}>Template Info</h3>
             <div style={{ fontSize: '0.75rem', lineHeight: 1.5 }}>
               <p><strong>{template.name}</strong></p>
@@ -1642,7 +1853,10 @@ export default function SimpleEditor() {
               <p style={{ color: '#6b7280' }}>
                 Size: {canvasWidth} × {canvasHeight}px
               </p>
-            </div>
+                </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -1665,6 +1879,25 @@ export default function SimpleEditor() {
 
         {/* Right Sidebar - Panels */}
         <div style={{ display: 'flex', flexShrink: 0 }}>
+          {/* Image Editing Tools Panel (only show when image is selected) */}
+          {selectedImage && (
+            <div style={{ 
+              width: '300px', 
+              height: 'calc(100vh - 140px)',
+              backgroundColor: 'white',
+              borderLeft: '1px solid #e2e8f0',
+              borderRight: '1px solid #e2e8f0',
+              overflowY: 'auto',
+              flexShrink: 0
+            }}>
+              <ImageEditingTools
+                selectedImage={selectedImage}
+                onImageUpdate={handleImageUpdate}
+                canvas={canvas}
+              />
+            </div>
+          )}
+
           {/* Layers Panel */}
           <LayersPanel
             canvas={canvas}

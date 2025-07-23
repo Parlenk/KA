@@ -220,14 +220,21 @@ const SimpleCanvas = React.forwardRef<any, CanvasProps>((props, ref) => {
     };
   }, []); // Remove width/height dependencies to prevent recreation
 
-  // Handle initial canvas size when canvas is created
+  // Handle canvas size changes (both initial and updates)
   useEffect(() => {
     if (!canvas) return;
     
-    // Set initial dimensions
+    // Set canvas dimensions whenever width or height changes
     canvas.setDimensions({ width, height });
     canvas.renderAll();
-  }, [canvas]); // Only run when canvas is first created
+    
+    // Also update the container size
+    const container = canvas.getElement().parentElement;
+    if (container) {
+      container.style.minWidth = `${width}px`;
+      container.style.minHeight = `${height}px`;
+    }
+  }, [canvas, width, height]); // React to canvas creation AND size changes
 
   // History management functions
   const saveCanvasState = useCallback((fabricCanvas: fabric.Canvas) => {
