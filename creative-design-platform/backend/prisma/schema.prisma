@@ -1,0 +1,532 @@
+// Phase 2: Multi-size design platform database schema
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  name        String?
+  password    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // User preferences
+  preferences Json?
+  
+  // Relations
+  projects              Project[]
+  brandKits             BrandKit[]
+  exports               ExportJob[]
+  cloudStorageConnections CloudStorageConnection[]
+  cloudStorageFiles     CloudStorageFile[]
+  socialConnections     SocialConnection[]
+  socialPublications    SocialPublication[]
+  apiKeys               ApiKey[]
+  webhooks              Webhook[]
+  apiCalls              ApiCall[]
+  
+  @@map("users")
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  thumbnail   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  userId      String
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  designSets  DesignSet[]
+  
+  @@map("projects")
+}
+
+model DesignSet {
+  id              String   @id @default(cuid())
+  name            String
+  masterCanvasId  String?  // The primary canvas that drives sync
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Sync settings
+  syncColors      Boolean  @default(true)
+  syncFonts       Boolean  @default(true)
+  syncLayout      Boolean  @default(false)
+  syncAnimations  Boolean  @default(false)
+  
+  // Relations
+  projectId       String
+  project         Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  canvases        Canvas[]
+  exports         ExportJob[]
+  
+  @@map("design_sets")
+}
+
+model Canvas {
+  id            String   @id @default(cuid())
+  name          String?
+  width         Int
+  height        Int
+  sizeId        String   // Reference to standard size or custom
+  platform      String?  // e.g., 'facebook', 'google-ads'
+  backgroundColor String @default("#ffffff")
+  backgroundType  String @default("color") // color, gradient, image
+  backgroundValue String @default("#ffffff")
+  backgroundOpacity Float @default(1.0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Canvas metadata stored as JSON
+  metadata      Json?
+  
+  // Relations
+  designSetId   String
+  designSet     DesignSet @relation(fields: [designSetId], references: [id], onDelete: Cascade)
+  objects       CanvasObject[]
+  animations    Animation[]
+  exports       ExportJob[]
+  cloudStorageFiles CloudStorageFile[]
+  socialPublications SocialPublication[]
+  
+  @@map("canvases")
+}
+
+model CanvasObject {
+  id          String   @id @default(cuid())
+  type        String   // text, image, shape, video, audio
+  layerIndex  Int      @default(0)
+  locked      Boolean  @default(false)
+  visible     Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Object properties stored as JSON for flexibility
+  properties  Json     // x, y, width, height, rotation, opacity, etc.
+  
+  // Relations
+  canvasId    String
+  canvas      Canvas     @relation(fields: [canvasId], references: [id], onDelete: Cascade)
+  animations  Animation[]
+  
+  @@map("canvas_objects")
+}
+
+model Animation {
+  id          String   @id @default(cuid())
+  name        String?
+  duration    Int      // milliseconds
+  delay       Int      @default(0)
+  loop        Boolean  @default(false)
+  easing      String   @default("ease-in-out")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Keyframes stored as JSON array
+  keyframes   Json     // Array of { time, properties, easing }
+  
+  // Relations
+  canvasId    String
+  canvas      Canvas       @relation(fields: [canvasId], references: [id], onDelete: Cascade)
+  objectId    String
+  object      CanvasObject @relation(fields: [objectId], references: [id], onDelete: Cascade)
+  
+  @@map("animations")
+}
+
+model BrandKit {
+  id          String   @id @default(cuid())
+  name        String
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  userId      String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  colors      BrandColor[]
+  fonts       BrandFont[]
+  logos       BrandLogo[]
+  
+  @@map("brand_kits")
+}
+
+model BrandColor {
+  id        String   @id @default(cuid())
+  name      String
+  hex       String
+  rgb       Json     // { r, g, b }
+  hsl       Json     // { h, s, l }
+  usage     Int      @default(0)
+  createdAt DateTime @default(now())
+  
+  // Relations
+  brandKitId String
+  brandKit   BrandKit @relation(fields: [brandKitId], references: [id], onDelete: Cascade)
+  
+  @@map("brand_colors")
+}
+
+model BrandFont {
+  id        String   @id @default(cuid())
+  family    String
+  variants  Json     // Array of variants: ['normal', 'bold', 'italic']
+  url       String?  // For custom fonts
+  type      String   // system, google, custom
+  usage     Int      @default(0)
+  createdAt DateTime @default(now())
+  
+  // Relations
+  brandKitId String
+  brandKit   BrandKit @relation(fields: [brandKitId], references: [id], onDelete: Cascade)
+  
+  @@map("brand_fonts")
+}
+
+model BrandLogo {
+  id          String   @id @default(cuid())
+  name        String
+  url         String
+  type        String   // primary, secondary, icon, wordmark
+  formats     Json     // Array of formats: ['svg', 'png', 'jpg']
+  dimensions  Json     // { width, height }
+  createdAt   DateTime @default(now())
+  
+  // Relations
+  brandKitId  String
+  brandKit    BrandKit @relation(fields: [brandKitId], references: [id], onDelete: Cascade)
+  
+  @@map("brand_logos")
+}
+
+model Template {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  category    String   // social, display, print, video
+  tags        Json     // Array of tags
+  thumbnail   String
+  isPremium   Boolean  @default(false)
+  isPublic    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Template design data stored as JSON
+  designData  Json
+  
+  // Relations - templates can be created by users
+  createdById String?
+  createdBy   User?    @relation(fields: [createdById], references: [id])
+  
+  @@map("templates")
+}
+
+model ExportJob {
+  id          String   @id @default(cuid())
+  status      String   // pending, processing, completed, failed
+  progress    Int      @default(0)
+  format      String   // jpg, png, svg, pdf, mp4, gif, html5
+  settings    Json     // Export settings as JSON
+  downloadUrls Json?   // Array of download URLs
+  error       String?
+  createdAt   DateTime @default(now())
+  completedAt DateTime?
+  
+  // Relations
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  designSetId String?
+  designSet   DesignSet? @relation(fields: [designSetId], references: [id], onDelete: SetNull)
+  canvasId    String?
+  canvas      Canvas?   @relation(fields: [canvasId], references: [id], onDelete: SetNull)
+  
+  @@map("export_jobs")
+}
+
+model Asset {
+  id          String   @id @default(cuid())
+  filename    String
+  originalName String
+  mimeType    String
+  size        Int      // File size in bytes
+  url         String
+  thumbnailUrl String?
+  width       Int?
+  height      Int?
+  duration    Float?   // For video/audio assets
+  tags        Json?    // Array of tags
+  createdAt   DateTime @default(now())
+  
+  // Relations
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("assets")
+}
+
+// Standard ad sizes reference table
+model AdSize {
+  id          String @id @default(cuid())
+  name        String
+  width       Int
+  height      Int
+  category    String // social, display, print, video
+  platform    String? // facebook, google-ads, etc.
+  isStandard  Boolean @default(true)
+  
+  @@unique([width, height, platform])
+  @@map("ad_sizes")
+}
+
+// AI generation history and caching
+model AIGeneration {
+  id          String   @id @default(cuid())
+  type        String   // image, text, background_removal, upscale
+  prompt      String?
+  settings    Json     // Generation settings
+  inputHash   String?  // Hash of input for caching
+  outputUrl   String?
+  status      String   // pending, processing, completed, failed
+  error       String?
+  cost        Float?   // API cost tracking
+  createdAt   DateTime @default(now())
+  completedAt DateTime?
+  
+  // Relations
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([inputHash])
+  @@index([userId, type])
+  @@map("ai_generations")
+}
+
+// Job queue for background processing
+model JobQueue {
+  id          String   @id @default(cuid())
+  type        String   // export, ai_generation, thumbnail_generation
+  data        Json     // Job data
+  status      String   // pending, processing, completed, failed
+  priority    Int      @default(0)
+  attempts    Int      @default(0)
+  maxAttempts Int      @default(3)
+  error       String?
+  createdAt   DateTime @default(now())
+  startedAt   DateTime?
+  completedAt DateTime?
+  
+  @@index([status, priority])
+  @@index([type, status])
+  @@map("job_queue")
+}
+
+// Cloud Storage Integration Models
+model CloudStorageConnection {
+  id                String   @id @default(cuid())
+  provider          String   // google_drive, dropbox, onedrive
+  accountId         String   // Provider-specific account ID
+  accountName       String
+  accountEmail      String?
+  accessToken       String
+  refreshToken      String?
+  expiresAt         DateTime?
+  isActive          Boolean  @default(true)
+  autoSyncEnabled   Boolean  @default(false)
+  autoSyncSettings  Json?    // Sync configuration
+  lastSyncAt        DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  // Relations
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  syncedFiles       CloudStorageFile[]
+  
+  @@unique([userId, provider, accountId])
+  @@index([userId, provider])
+  @@index([isActive])
+  @@map("cloud_storage_connections")
+}
+
+model CloudStorageFile {
+  id            String   @id @default(cuid())
+  fileName      String
+  fileSize      Int
+  mimeType      String
+  cloudFileId   String   // Provider-specific file ID
+  cloudFilePath String   // Provider-specific file path
+  shareUrl      String?  // Public sharing URL
+  uploadedAt    DateTime @default(now())
+  
+  // Relations
+  connectionId  String
+  connection    CloudStorageConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  canvasId      String?
+  canvas        Canvas?  @relation(fields: [canvasId], references: [id], onDelete: SetNull)
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([connectionId])
+  @@index([canvasId])
+  @@index([userId])
+  @@index([uploadedAt])
+  @@map("cloud_storage_files")
+}
+
+// Social Media Integration Models
+model SocialConnection {
+  id            String   @id @default(cuid())
+  platform      String   // facebook, instagram, linkedin, twitter, pinterest, tiktok
+  accountId     String   // Platform-specific account ID
+  accountName   String
+  accessToken   String
+  refreshToken  String?
+  expiresAt     DateTime?
+  isActive      Boolean  @default(true)
+  lastUsed      DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  publications  SocialPublication[]
+  
+  @@unique([userId, platform, accountId])
+  @@index([userId, platform])
+  @@index([isActive])
+  @@map("social_connections")
+}
+
+model SocialPublication {
+  id             String   @id @default(cuid())
+  platform       String
+  content        String
+  mediaUrls      String[] // URLs of media to publish
+  options        Json?    // Platform-specific options
+  status         String   // pending, published, failed
+  platformPostId String?  // Platform-specific post ID
+  platformUrl    String?  // Direct link to published post
+  error          String?
+  publishedAt    DateTime?
+  createdAt      DateTime @default(now())
+  
+  // Relations
+  canvasId       String
+  canvas         Canvas   @relation(fields: [canvasId], references: [id], onDelete: Cascade)
+  connectionId   String
+  connection     SocialConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([canvasId])
+  @@index([connectionId])
+  @@index([userId])
+  @@index([status])
+  @@index([publishedAt])
+  @@map("social_publications")
+}
+
+// API Integration Models
+model ApiKey {
+  id          String   @id @default(cuid())
+  name        String
+  keyPrefix   String   @unique
+  keyHash     String
+  scopes      String[] // Permissions granted to this key
+  isActive    Boolean  @default(true)
+  lastUsed    DateTime?
+  usageCount  Int      @default(0)
+  expiresAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  apiCalls    ApiCall[]
+  
+  @@index([userId])
+  @@index([keyPrefix])
+  @@index([isActive])
+  @@map("api_keys")
+}
+
+model Webhook {
+  id          String   @id @default(cuid())
+  url         String
+  events      String[] // Event types to subscribe to
+  description String?
+  secret      String   // For signature verification
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deliveries  WebhookDelivery[]
+  
+  @@index([userId])
+  @@index([isActive])
+  @@map("webhooks")
+}
+
+model WebhookDelivery {
+  id              String   @id @default(cuid())
+  eventType       String
+  payload         Json
+  url             String
+  status          String   @default("pending") // pending, success, failed
+  statusCode      Int?
+  attempts        Int      @default(0)
+  errorMessage    String?
+  responseHeaders Json?
+  responseBody    String?
+  deliveredAt     DateTime?
+  failedAt        DateTime?
+  createdAt       DateTime @default(now())
+  
+  // Relations
+  webhookId       String
+  webhook         Webhook  @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+  
+  @@index([webhookId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("webhook_deliveries")
+}
+
+model ApiCall {
+  id           String   @id @default(cuid())
+  method       String
+  endpoint     String
+  userAgent    String?
+  ip           String?
+  statusCode   Int
+  duration     Int      // Response time in milliseconds
+  requestSize  Int      @default(0)
+  responseSize Int      @default(0)
+  timestamp    DateTime @default(now())
+  
+  // Relations
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  apiKeyId     String?
+  apiKey       ApiKey?  @relation(fields: [apiKeyId], references: [id], onDelete: SetNull)
+  
+  @@index([userId])
+  @@index([apiKeyId])
+  @@index([timestamp])
+  @@index([endpoint])
+  @@map("api_calls")
+}

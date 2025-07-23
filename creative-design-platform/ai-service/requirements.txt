@@ -1,0 +1,41 @@
+# AI Service Dependencies
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# AI/ML Libraries
+torch==2.1.0
+torchvision==0.16.0
+transformers==4.35.0
+diffusers==0.21.4
+accelerate==0.24.1
+
+# Image Processing
+pillow==10.1.0
+opencv-python==4.8.1.78
+numpy==1.24.3
+
+# Background Removal
+rembg==2.0.50
+
+# HTTP Client for External APIs
+httpx==0.25.2
+aiofiles==23.2.0
+
+# Environment and Configuration
+python-dotenv==1.0.0
+python-multipart==0.0.6
+
+# Logging and Monitoring
+structlog==23.2.0
+
+# Testing
+pytest==7.4.3
+pytest-asyncio==0.21.1
+httpx==0.25.2  # for testing
+
+# Development
+black==23.11.0
+isort==5.12.0
+flake8==6.1.0

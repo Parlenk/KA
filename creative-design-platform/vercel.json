@@ -1,0 +1,42 @@
+{
+  "version": 2,
+  "name": "kredivo-ads-center",
+  "builds": [
+    {
+      "src": "frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    },
+    {
+      "src": "backend/src/index-simple.js",
+      "use": "@vercel/node",
+      "config": {
+        "maxLambdaSize": "50mb"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/backend/src/index-simple.js"
+    },
+    {
+      "src": "/health",
+      "dest": "/backend/src/index-simple.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/frontend/dist/$1"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  },
+  "functions": {
+    "backend/src/index-simple.js": {
+      "maxDuration": 30
+    }
+  }
+}

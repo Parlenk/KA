@@ -1,0 +1,112 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+*.log
+logs/
+backend/logs/
+backend/backend.log
+backend/backend_test.log
+backend-output.log
+frontend-output.log
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Build outputs
+dist/
+build/
+out/
+.next/
+.nuxt/
+.vuepress/dist
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# nyc test coverage
+.nyc_output
+
+# Database
+*.sqlite
+*.db
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.tmp
+*.temp
+.tmp/
+.temp/
+
+# File uploads
+uploads/
+backend/uploads/
+
+# Prisma
+backend/prisma/migrations/
+!backend/prisma/migrations/.gitkeep
+
+# Docker
+docker-compose.override.yml
+
+# Vercel
+.vercel
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# AI Service specific
+ai-service/.env
+ai-service/venv/
+ai-service/__pycache__/
+
+# Large installation files (exclude from repo)
+../Python-3.11.9/
+../postgresql-15.8/
+../postgresql-source.tar.gz
+../python3.11.tgz
+../node.pkg
+../mongodb.tgz
+../redis.tar.gz
+
+# System specific directories
+../backend/node_modules/
+../frontend/node_modules/

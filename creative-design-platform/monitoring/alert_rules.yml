@@ -1,0 +1,186 @@
+groups:
+  - name: application_alerts
+    rules:
+      # High Error Rate
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value }} errors per second"
+
+      # API Response Time
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High API response time"
+          description: "95th percentile response time is {{ $value }}s"
+
+      # Database Connection Issues
+      - alert: DatabaseConnectionFailure
+        expr: up{job="postgres"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL database is down"
+          description: "PostgreSQL database connection failed"
+
+      - alert: MongoDBConnectionFailure
+        expr: up{job="mongodb"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "MongoDB database is down"
+          description: "MongoDB database connection failed"
+
+      # Redis Issues
+      - alert: RedisConnectionFailure
+        expr: up{job="redis"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis cache is down"
+          description: "Redis connection failed"
+
+      # Queue Processing Issues
+      - alert: QueueBacklog
+        expr: queue_pending_jobs > 1000
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Large queue backlog detected"
+          description: "{{ $value }} jobs pending in queue"
+
+      - alert: QueueProcessingStalled
+        expr: rate(queue_processed_jobs_total[10m]) == 0
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Queue processing has stalled"
+          description: "No jobs processed in the last 10 minutes"
+
+  - name: infrastructure_alerts
+    rules:
+      # High CPU Usage
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage detected"
+          description: "CPU usage is {{ $value }}% on {{ $labels.instance }}"
+
+      # High Memory Usage
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is {{ $value }}% on {{ $labels.instance }}"
+
+      # Disk Space Low
+      - alert: DiskSpaceLow
+        expr: (1 - (node_filesystem_avail_bytes / node_filesystem_size_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low disk space"
+          description: "Disk usage is {{ $value }}% on {{ $labels.instance }}"
+
+      # Service Down
+      - alert: ServiceDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service is down"
+          description: "{{ $labels.job }} service is down on {{ $labels.instance }}"
+
+  - name: business_alerts
+    rules:
+      # Low User Activity
+      - alert: LowUserActivity
+        expr: active_users_count < 10
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low user activity detected"
+          description: "Only {{ $value }} active users in the last 30 minutes"
+
+      # High User Registration Rate (potential spam)
+      - alert: HighRegistrationRate
+        expr: rate(user_registrations_total[5m]) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Unusually high registration rate"
+          description: "{{ $value }} registrations per second - possible spam attack"
+
+      # AI Service Failures
+      - alert: AIServiceFailures
+        expr: rate(ai_requests_failed_total[5m]) / rate(ai_requests_total[5m]) > 0.2
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High AI service failure rate"
+          description: "{{ $value | humanizePercentage }} of AI requests are failing"
+
+      # Export Failures
+      - alert: ExportFailures
+        expr: rate(export_jobs_failed_total[5m]) / rate(export_jobs_total[5m]) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High export failure rate"
+          description: "{{ $value | humanizePercentage }} of export jobs are failing"
+
+  - name: security_alerts
+    rules:
+      # Too Many Failed Login Attempts
+      - alert: HighFailedLoginRate
+        expr: rate(auth_login_failures_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High failed login rate detected"
+          description: "{{ $value }} failed login attempts per second"
+
+      # Suspicious API Usage
+      - alert: SuspiciousAPIUsage
+        expr: rate(http_requests_total[5m]) > 1000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Unusually high API request rate"
+          description: "{{ $value }} requests per second from {{ $labels.instance }}"
+
+      # Unauthorized Access Attempts
+      - alert: UnauthorizedAccess
+        expr: rate(http_requests_total{status="403"}[5m]) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High rate of unauthorized access attempts"
+          description: "{{ $value }} 403 responses per second"

@@ -1,0 +1,211 @@
+# Docker Compose for Creative Design Platform Development
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: kreativo-postgres
+    environment:
+      POSTGRES_DB: kreativo_ads
+      POSTGRES_USER: kreativo
+      POSTGRES_PASSWORD: kreativo_dev_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/prisma/schema.prisma:/docker-entrypoint-initdb.d/schema.sql:ro
+    networks:
+      - kreativo-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kreativo -d kreativo_ads"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # MongoDB Database
+  mongodb:
+    image: mongo:7.0
+    container_name: kreativo-mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: kreativo
+      MONGO_INITDB_ROOT_PASSWORD: kreativo_dev_pass
+      MONGO_INITDB_DATABASE: kreativo_designs
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - kreativo-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: kreativo-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - kreativo-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # MinIO (S3-compatible storage)
+  minio:
+    image: minio/minio:latest
+    container_name: kreativo-minio
+    environment:
+      MINIO_ROOT_USER: kreativo
+      MINIO_ROOT_PASSWORD: kreativo_dev_pass
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - kreativo-network
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: kreativo-backend
+    environment:
+      DATABASE_URL: postgresql://kreativo:kreativo_dev_pass@postgres:5432/kreativo_ads
+      MONGODB_URI: mongodb://kreativo:kreativo_dev_pass@mongodb:27017/kreativo_designs
+      REDIS_URL: redis://redis:6379
+      S3_ENDPOINT: http://minio:9000
+      S3_ACCESS_KEY: kreativo
+      S3_SECRET_KEY: kreativo_dev_pass
+      S3_BUCKET: kreativo-assets
+      NODE_ENV: development
+      PORT: 3000
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - kreativo-network
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    restart: unless-stopped
+
+  # AI Service
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    container_name: kreativo-ai-service
+    environment:
+      # Basic configuration
+      HOST: 0.0.0.0
+      PORT: 8000
+      DEBUG: true
+      ENVIRONMENT: development
+      
+      # Database connections
+      DATABASE_URL: postgresql://kreativo:kreativo_dev_pass@postgres:5432/kreativo_ads
+      REDIS_URL: redis://redis:6379
+      
+      # Storage configuration
+      STORAGE_TYPE: s3
+      S3_ENDPOINT: http://minio:9000
+      S3_BUCKET: kreativo-ai-assets
+      S3_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: kreativo
+      AWS_SECRET_ACCESS_KEY: kreativo_dev_pass
+      
+      # AI API Keys (you need to set these in .env)
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      REPLICATE_API_TOKEN: ${REPLICATE_API_TOKEN}
+      REMOVEBG_API_KEY: ${REMOVEBG_API_KEY}
+      DEEPL_API_KEY: ${DEEPL_API_KEY}
+      
+      # Model configuration
+      MAX_IMAGE_SIZE: 2048
+      MAX_BATCH_SIZE: 4
+      MAX_REQUESTS_PER_MINUTE: 60
+      
+      # Logging
+      LOG_LEVEL: INFO
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - kreativo-network
+    volumes:
+      - ./ai-service:/app
+      - ai_uploads:/app/uploads
+    restart: unless-stopped
+
+  # Frontend (React)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: kreativo-frontend
+    environment:
+      VITE_API_URL: http://localhost:3000
+      VITE_AI_SERVICE_URL: http://localhost:8000
+      NODE_ENV: development
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+      - ai-service
+    networks:
+      - kreativo-network
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  mongodb_data:
+  redis_data:
+  minio_data:
+  ai_uploads:
+
+networks:
+  kreativo-network:
+    driver: bridge
+
+# Development helpers
+x-dev-aliases:
+  # Run individual services
+  postgres-only: &postgres-only
+    profiles: ["postgres"]
+    
+  ai-only: &ai-only
+    profiles: ["ai"]
