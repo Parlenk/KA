@@ -68,7 +68,7 @@ class AIServiceClient {
         body: JSON.stringify(data),
       });
 
-      if (\!response.ok) {
+      if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
