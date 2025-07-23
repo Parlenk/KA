@@ -1,0 +1,10 @@
+<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Blue top-left vertical element -->
+  <rect x="1.5" y="1.5" width="3" height="7" fill="#5BB3E6" rx="1"/>
+  
+  <!-- Orange diagonal stripe - main K element -->
+  <rect x="3" y="1.5" width="11" height="3" fill="#FF8542" rx="1" transform="rotate(30 8.5 3)"/>
+  
+  <!-- Blue bottom-right angled element -->
+  <rect x="9.5" y="9.5" width="4" height="3" fill="#5BB3E6" rx="1" transform="rotate(-30 11.5 11)"/>
+</svg>
